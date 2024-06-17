@@ -226,6 +226,152 @@ def add_teacher(request):
 
 
 
+@user_passes_test(is_principal, login_url='principal_login')
+def list_teachers(request):
+    teachers = Teacher.objects.all()
+    return render(request, 'principal/list_teachers.html', {'teachers': teachers})
+
+
+@user_passes_test(is_principal, login_url='principal_login')
+def edit_teacher(request, teacher_id):
+    teacher_user = get_object_or_404(CustomUser, id=teacher_id)
+    teacher = get_object_or_404(Teacher, user=teacher_user)
+    
+    if request.method == 'POST':
+        user_form = CustomUserForm(request.POST, instance=teacher_user)
+        teacher_form = TeacherForm(request.POST, instance=teacher)
+        if user_form.is_valid() and teacher_form.is_valid():
+            user_form.save()
+            teacher_form.save()
+            return redirect('list_teachers')
+    else:
+        user_form = CustomUserForm(instance=teacher_user)
+        teacher_form = TeacherForm(instance=teacher)
+    
+    return render(request, 'principal/edit_teacher.html', {'user_form': user_form, 'teacher_form': teacher_form})
+
+
+@user_passes_test(is_principal, login_url='principal_login')
+def delete_teacher(request, teacher_id):
+    teacher_user = get_object_or_404(CustomUser, id=teacher_id)
+    teacher = get_object_or_404(Teacher, user=teacher_user)
+    
+    if request.method == 'POST':
+        teacher_user.delete()
+        return redirect('list_teachers')
+    
+    return render(request, 'principal/delete_teacher.html', {'teacher': teacher})
+
+
+@user_passes_test(is_principal, login_url='principal_login')
+def view_student_details(request, student_id):
+    student = get_object_or_404(Student, user__id=student_id)
+    return render(request, 'principal/view_student_details.html', {'student': student})
+
+
+@user_passes_test(is_principal, login_url='principal_login')
+def view_teacher_details(request, teacher_id):
+    teacher = get_object_or_404(Teacher, user__id=teacher_id)
+    return render(request, 'principal/view_teacher_details.html', {'teacher': teacher})
+
+
+@user_passes_test(is_principal, login_url='principal_login')
+def view_attendance_records(request):
+    attendance_records = Attendance.objects.all()
+    return render(request, 'principal/view_attendance_records.html', {'attendance_records': attendance_records})
+
+
+@user_passes_test(is_principal, login_url='principal_login')
+def view_performance_reports(request):
+    students = Student.objects.all()
+    return render(request, 'principal/view_performance_reports.html', {'students': students})
+
+
+
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required, user_passes_test
+from .models import Student, Attendance, Teacher
+from .forms import AttendanceForm
+
+def is_teacher(user):
+    return user.is_authenticated and user.role == 'teacher'
+# views.py
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from .models import Student, Attendance, Teacher
+from django.contrib import messages
+
+@login_required
+def add_attendance(request):
+    today = timezone.now().date()
+    teacher = request.user.teacher
+    students = Student.objects.filter(grade=teacher.class_teacher_of_grade).order_by('first_name', 'last_name')
+
+    if request.method == 'POST':
+        for student in students:
+            status = request.POST.get(f'status_{student.pk}', '0')  # Default to '0' (Absent)
+            attendance, created = Attendance.objects.get_or_create(
+                student=student,
+                date=today,
+                defaults={'status': status, 'class_teacher': teacher}
+            )
+            if not created:
+                attendance.status = status
+                attendance.save()
+
+        messages.success(request, "Attendance has been recorded successfully.")
+        return redirect('teachers_dashboard')
+
+    attendance_exists = Attendance.objects.filter(student__in=students, date=today).exists()
+    class_name = teacher.class_teacher_of_grade
+
+    context = {
+        'today': today,
+        'class_name': class_name,
+        'students': students,
+        'attendance_exists': attendance_exists,
+    }
+
+    return render(request, 'teacher/add_attendance.html', context)
+
+from django.shortcuts import render
+from .models import Student, Attendance
+from datetime import date
+from django.utils.dateparse import parse_date
+
+def list_attendance(request):
+    class_teacher = request.user.teacher
+    students = Student.objects.filter(grade=class_teacher.class_teacher_of_grade, is_deleted=False).order_by('first_name')
+    
+    # Get the selected date from the request or default to today
+    selected_date = request.GET.get('attendance_date')
+    if selected_date:
+        selected_date = parse_date(selected_date)
+    else:
+        selected_date = date.today()
+
+    # Get attendance records for the selected date
+    attendance_records = {attendance.student.pk: attendance.status for attendance in Attendance.objects.filter(date=selected_date)}
+
+    context = {
+        'students': students,
+        'attendance_records': attendance_records,
+        'selected_date': selected_date,
+        'class_name': class_teacher.class_teacher_of_grade,
+    }
+
+    return render(request, 'teacher/list_attendance.html', context)
+
+
+
+
+
+
+
+
+
 
 
 
@@ -276,9 +422,5 @@ from django.http import HttpResponse
 @user_passes_test(is_student, login_url='teacher_login')
 def student_dashboard(request):
     return HttpResponse("hey this is student dashboard")
-
-
-
-
 
 

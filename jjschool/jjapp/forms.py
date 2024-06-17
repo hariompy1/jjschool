@@ -50,10 +50,10 @@ class SudentForm(AuthenticationForm):
 
 
 
-class AttendanceForm(forms.ModelForm):
-    class Meta:
-        model = Attendance
-        fields = ['student', 'status']
+# class AttendanceForm(forms.ModelForm):
+#     class Meta:
+#         model = Attendance
+#         fields = ['student', 'status']
 
 
 
@@ -69,3 +69,22 @@ class StudentForm(forms.ModelForm):
         model = Student
         fields = [ 'first_name', 'last_name', 'date_of_birth', 'admission_date', 'grade',  'total_fee', 'remaining_fee']
 
+
+
+
+
+
+
+from django import forms
+from .models import Attendance
+
+class AttendanceForm(forms.ModelForm):
+    class Meta:
+        model = Attendance
+        fields = ['student', 'status']
+
+    def __init__(self, *args, **kwargs):
+        teacher = kwargs.pop('teacher', None)
+        super(AttendanceForm, self).__init__(*args, **kwargs)
+        if teacher:
+            self.fields['student'].queryset = Student.objects.filter(grade=teacher.class_teacher_of_grade)

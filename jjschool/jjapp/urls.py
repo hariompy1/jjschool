@@ -22,6 +22,24 @@ urlpatterns = [
      # path('', test)
      path("student/login", student_login , name= "student_login"),
      path("student/dashboard", student_dashboard, name ="student_dashboard"),
+     path('teacher/add-attendance/', add_attendance, name='add_attendance'),
+     path('teacher/list-attendance/', list_attendance, name='list_attendance'),
+
+
+     path('chatbot/chat/', chatbot_view, name='chatbot_view'),
+
+
+
+
+
+
+     path('principal/list-teachers/', list_teachers, name='list_teachers'),
+     path('principal/edit-teacher/<int:teacher_id>/', edit_teacher, name='edit_teacher'),
+     path('principal/delete-teacher/<int:teacher_id>/', delete_teacher, name='delete_teacher'),
+     path('principal/view-teacher-details/<int:teacher_id>/', view_teacher_details, name='view_teacher_details'),
+     path('principal/view-student-details/<int:student_id>/', view_student_details, name='view_student_details'),
+     path('principal/view-attendance-records/', view_attendance_records, name='view_attendance_records'),
+     path('principal/view-performance-reports/', view_performance_reports, name='view_performance_reports'),
 
 ]
 

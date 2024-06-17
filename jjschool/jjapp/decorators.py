@@ -38,8 +38,8 @@ def is_principal(user):
     return user.is_authenticated and user.role == 'principal'
 
 
-def is_teacher(user):
-    return user.is_authenticated and user.role == 'teacher'
+# def is_teacher(user):
+#     return user.is_authenticated and user.role == 'teacher'
 
 
 def is_student(user):

@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
@@ -26,15 +26,25 @@ class Student(models.Model):
     last_name = models.CharField(max_length=100)
     date_of_birth = models.DateField()
     admission_date = models.DateField()
-    grade = models.CharField(max_length=10 )
+    grade = models.CharField(max_length=10)
     performance = models.TextField(blank=True)
     attendance_records = models.TextField(blank=True)
     disciplinary_actions = models.TextField(blank=True)
     total_fee = models.DecimalField(max_digits=10, decimal_places=2)
     remaining_fee = models.DecimalField(max_digits=10, decimal_places=2)
-    attendance_percentage = models.FloatField(blank=True ,null=True)
+    attendance_percentage = models.FloatField(blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
+    roll_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
 
+    def save(self, *args, **kwargs):
+        if not self.roll_number:
+            last_student = Student.objects.filter(grade=self.grade).order_by('-roll_number').first()
+            if last_student and last_student.roll_number:
+                next_roll_number = int(last_student.roll_number[-2:]) + 1
+            else:
+                next_roll_number = 1
+            self.roll_number = f"{self.grade}{str(next_roll_number).zfill(2)}"
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} {self.grade}"
@@ -57,19 +67,6 @@ class Principal(models.Model):
 
 
 
-class Attendance(models.Model):
-    ATTENDANCE_STATUS = [
-        (0, 'Absent'),
-        (1, 'Present'),
-    ]
-    
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    date = models.DateField(auto_now_add=True)  # Automatically sets the date to the current date
-    status = models.IntegerField(choices=ATTENDANCE_STATUS)  # Use choices for 0 and 1
-    recorded_by = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True)
-    
-    def __str__(self):
-        return f"{self.student} - {self.date} - {self.get_status_display()}"
 
 
 
@@ -83,6 +80,34 @@ class Notification(models.Model):
     
 
 
-class Class(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+class Attendance(models.Model):
+    ATTENDANCE_STATUS = [
+        (0, 'Absent'),
+        (1, 'Present'),
+    ]
+    
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='attendances')
+    class_teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True, related_name='class_attendances')
+    date = models.DateField(default=timezone.now)
+    status = models.IntegerField(choices=ATTENDANCE_STATUS)
+    recorded_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.class_teacher:
+            self.class_teacher = Teacher.objects.filter(class_teacher_of_grade=self.student.grade).first()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.student} - {self.date} - {self.get_status_display()}"
+
+
+
+
+
+
+
+
+
+
+
 
