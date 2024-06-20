@@ -97,6 +97,7 @@
                         <td class="actions">
                             <a href="{% url 'edit_student' student.user.id %}" class="btn">Edit</a>
                             <a href="{% url 'soft_delete_student' student.user.id %}" class="btn">Delete</a>
+                            <a href="{% url 'student_profile' student.user.id %}" class="profile-button">Profile</a>
                         </td>
                     </tr>
                 {% endfor %}
